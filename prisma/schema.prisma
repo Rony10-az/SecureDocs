@@ -1,0 +1,167 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+  SUSPENDIDO
+}
+
+enum TipoContrato {
+  INTERNO
+  EXTERNO
+}
+
+enum EstadoDocumento {
+  BORRADOR
+  PENDIENTE
+  PUBLICADO
+  RECHAZADO
+}
+
+enum EtapaPolitica {
+  ESTADO // se evalúa antes de RBAC (P7, P9)
+  ABAC   // se evalúa después de RBAC
+}
+
+enum ResultadoAuditoria {
+  PERMITIDO
+  DENEGADO
+}
+
+enum EtapaAuditoria {
+  AUTENTICACION
+  ESTADO
+  RBAC
+  ABAC
+  COMPLETA // acceso permitido: pasó todas las etapas
+}
+
+model Departamento {
+  id         Int         @id @default(autoincrement())
+  codigo     String      @unique
+  nombre     String
+  usuarios   Usuario[]
+  documentos Documento[]
+
+  @@map("departamento")
+}
+
+model Rol {
+  id       Int          @id @default(autoincrement())
+  nombre   String       @unique
+  permisos RolPermiso[]
+  usuarios Usuario[]
+
+  @@map("rol")
+}
+
+model Permiso {
+  id     Int          @id @default(autoincrement())
+  codigo String       @unique
+  roles  RolPermiso[]
+
+  @@map("permiso")
+}
+
+model RolPermiso {
+  rol_id     Int
+  permiso_id Int
+  rol        Rol     @relation(fields: [rol_id], references: [id], onDelete: Cascade)
+  permiso    Permiso @relation(fields: [permiso_id], references: [id], onDelete: Cascade)
+
+  @@id([rol_id, permiso_id])
+  @@map("rol_permiso")
+}
+
+model Usuario {
+  id               Int           @id @default(autoincrement())
+  nombre           String
+  correo           String        @unique
+  password_hash    String
+  rol_id           Int
+  rol              Rol           @relation(fields: [rol_id], references: [id])
+  departamento_id  Int
+  departamento     Departamento  @relation(fields: [departamento_id], references: [id])
+  nivel_seguridad  Int
+  pais             String
+  tipo_contrato    TipoContrato  @default(INTERNO)
+  estado           EstadoUsuario @default(ACTIVO)
+  fecha_expiracion DateTime?     @db.Date
+  creado_en        DateTime      @default(now())
+
+  documentos Documento[] @relation("Propietario")
+  aprobados  Documento[] @relation("Aprobador")
+  auditorias Auditoria[]
+
+  @@map("usuario")
+}
+
+model Documento {
+  id                     Int             @id @default(autoincrement())
+  titulo                 String
+  descripcion            String?
+  propietario_id         Int
+  propietario            Usuario         @relation("Propietario", fields: [propietario_id], references: [id])
+  departamento_id        Int
+  departamento           Departamento    @relation(fields: [departamento_id], references: [id])
+  nivel_confidencialidad Int
+  estado                 EstadoDocumento @default(BORRADOR)
+  pais                   String
+  fecha_creacion         DateTime        @default(now())
+  aprobado_por           Int?
+  aprobador              Usuario?        @relation("Aprobador", fields: [aprobado_por], references: [id])
+  fecha_aprobacion       DateTime?
+  eliminado_en           DateTime? // papelera (borrado lógico)
+
+  archivo_clave           String? @unique @db.Uuid
+  archivo_nombre_original String?
+  archivo_mime            String?
+  archivo_tamano          Int?
+  archivo_sha256          String? @db.Char(64)
+
+  @@map("documento")
+}
+
+model Politica {
+  id                Int           @id @default(autoincrement())
+  codigo            String        @unique
+  nombre            String
+  descripcion       String?
+  etapa             EtapaPolitica @default(ABAC)
+  orden             Int           @default(0)
+  acciones          String[]
+  condicion         Json
+  roles_exceptuados String[]
+  motivo_denegacion String
+  activa            Boolean       @default(true)
+
+  @@map("politica")
+}
+
+model Auditoria {
+  id              BigInt             @id @default(autoincrement())
+  usuario_id      Int?
+  usuario         Usuario?           @relation(fields: [usuario_id], references: [id])
+  usuario_correo  String?
+  recurso         String
+  accion          String
+  resultado       ResultadoAuditoria
+  etapa           EtapaAuditoria
+  politica_codigo String?
+  motivo          String
+  ip              String?
+  ubicacion       String?
+  dispositivo     String?
+  fecha           DateTime           @default(now()) @db.Timestamptz(3)
+
+  @@index([fecha])
+  @@index([usuario_id])
+  @@map("auditoria")
+}
