@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "95855748-1422-47dd-8402-8ec11c7dda7b",
     "name": "SecureDocs API",
-    "description": "# SecureDocs — TechCorp S.A.\n\nColección de pruebas HTTP. Se va ampliando bloque por bloque (ahora: Bloque 2 — login JWT y contexto).\n\n## Cómo usarla\n1. Importa la colección **y** el environment `SecureDocs - Local`, y selecciónalo arriba a la derecha.\n2. Levanta la API (`npm run dev`) y ejecuta un **login** (carpeta 1 o 3): guarda el token en `{{token}}`.\n3. Los demás requests usan ese token automáticamente (Authorization: Bearer).\n\n## Headers de entorno (simulados)\n| Header | Ejemplo | Política |\n|---|---|---|\n| `X-Ubicacion` | `PERU`, `CHILE` | P5 (país) |\n| `X-Dispositivo` | `CORPORATIVO`, `PERSONAL` | P6 |\n| `X-Hora` | `20:00` (solo fuera de producción) | P4 (horario) |\n\nContraseña de todos los usuarios de prueba: `Secure123!`.\n\nFunciona también en **Bruno**: *Import Collection → Postman Collection*.",
+    "description": "# SecureDocs — TechCorp S.A.\n\nColección de pruebas HTTP. Se va ampliando bloque por bloque (ahora: Bloque 2 — login JWT y contexto; Bloque 3 — RBAC, ABAC y auditoría).\n\n## Cómo usarla\n1. Importa la colección **y** el environment `SecureDocs - Local`, y selecciónalo arriba a la derecha.\n2. Levanta la API (`npm run dev`) y ejecuta un **login** (carpeta 1 o 3): guarda el token en `{{token}}`.\n3. Los demás requests usan ese token automáticamente (Authorization: Bearer).\n\n## Headers de entorno (simulados)\n| Header | Ejemplo | Política |\n|---|---|---|\n| `X-Ubicacion` | `PERU`, `CHILE` | P5 (país) |\n| `X-Dispositivo` | `CORPORATIVO`, `PERSONAL` | P6 |\n| `X-Hora` | `20:00` (solo fuera de producción) | P4 (horario) |\n\nContraseña de todos los usuarios de prueba: `Secure123!`.\n\nFunciona también en **Bruno**: *Import Collection → Postman Collection*.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -159,6 +159,7 @@
                   "  pm.expect(json.entorno.dispositivo).to.eql(String(pm.environment.get(\"dispositivo\")).toUpperCase());",
                   "});",
                   "pm.test(\"hora con formato HH:mm\", () => pm.expect(json.entorno.hora).to.match(/^\\d{2}:\\d{2}$/));",
+                  "pm.test(\"permisos del rol EMPLEADO (salen de la tabla rol_permiso)\", () => pm.expect(json.permisos).to.have.members([\"DOC_CREATE\", \"DOC_DOWNLOAD\", \"DOC_READ\", \"DOC_UPDATE\"]));",
                   "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));"
                 ]
               }
@@ -245,7 +246,7 @@
                 "me"
               ]
             },
-            "description": "Así se probará la política P4 (horario) en el Bloque 3 y en el caso 9."
+            "description": "Así se probará la política P4 (horario) sobre documentos (caso 9, Bloques 4 y 6)."
           }
         },
         {
@@ -1352,6 +1353,1774 @@
             },
             "auth": {
               "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 · Autorización y auditoría (Bloque 3)",
+      "description": "Flujo P7/P9 -> RBAC -> ABAC -> auditoría, probado con GET /auditoria (acción AUDIT_READ). Las políticas P1-P6, P8 y P10 se prueban con documentos en el Bloque 4/6; aquí se cubren estado (P7, P9), RBAC y la traza de auditoría. Ejecútalos en orden (Runner): los últimos comprueban los registros que dejaron los primeros.",
+      "item": [
+        {
+          "name": "GET /auditoria · sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = NO_AUTENTICADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_AUTENTICADO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · Empleado · FINANZAS · nivel 3 (Eduardo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "empleado.fin@techcorp.pe\n\nCasos 1, 2, 4, 15. Es propietario de varios documentos de FINANZAS.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol EMPLEADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"tiene exactamente estos permisos: DOC_CREATE, DOC_DOWNLOAD, DOC_READ, DOC_UPDATE\", () => pm.expect(json.permisos).to.have.members([\"DOC_CREATE\",\"DOC_DOWNLOAD\",\"DOC_READ\",\"DOC_UPDATE\"]));",
+                  "pm.test(\"y ninguno más (4)\", () => pm.expect(json.permisos).to.have.lengthOf(4));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Empleado (sin AUDIT_READ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                  "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                  "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                  "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login · Supervisor · FINANZAS · nivel 4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = SUPERVISOR\", () => pm.expect(json.usuario.rol).to.eql(\"SUPERVISOR\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "supervisor.fin@techcorp.pe\n\nCasos 3 (aprueba documento ajeno de su área) y 13 (aprueba el suyo: P10).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"supervisor.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol SUPERVISOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = SUPERVISOR\", () => pm.expect(json.usuario.rol).to.eql(\"SUPERVISOR\"));",
+                  "pm.test(\"tiene exactamente estos permisos: DOC_APPROVE, DOC_CREATE, DOC_DOWNLOAD, DOC_READ, DOC_UPDATE\", () => pm.expect(json.permisos).to.have.members([\"DOC_APPROVE\",\"DOC_CREATE\",\"DOC_DOWNLOAD\",\"DOC_READ\",\"DOC_UPDATE\"]));",
+                  "pm.test(\"y ninguno más (5)\", () => pm.expect(json.permisos).to.have.lengthOf(5));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Supervisor (sin AUDIT_READ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                  "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                  "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                  "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login · Invitado externo (vigente hasta 2027-12-31)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = INVITADO\", () => pm.expect(json.usuario.rol).to.eql(\"INVITADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "invitado@externo.com\n\nCasos 11 y 12 (P8: solo documentos nivel 1 publicados).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"invitado@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol INVITADO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = INVITADO\", () => pm.expect(json.usuario.rol).to.eql(\"INVITADO\"));",
+                  "pm.test(\"tiene exactamente estos permisos: DOC_READ\", () => pm.expect(json.permisos).to.have.members([\"DOC_READ\"]));",
+                  "pm.test(\"y ninguno más (1)\", () => pm.expect(json.permisos).to.have.lengthOf(1));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Invitado (sin AUDIT_READ)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                  "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                  "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                  "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login · Empleado INACTIVO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = INACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"INACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "inactivo@techcorp.pe\n\nCaso 8. El login FUNCIONA a propósito; la denegación por P7 ocurre en authorize (Bloque 3) y queda auditada.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"inactivo@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /auditoria · Usuario INACTIVO (P7)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                  "pm.test(\"etapa = ESTADO\", () => pm.expect(cuerpo.etapa).to.eql(\"ESTADO\"));",
+                  "pm.test(\"política = P7\", () => pm.expect(cuerpo.politica).to.eql(\"P7\"));",
+                  "pm.test(\"motivo = Usuario inactivo o suspendido\", () => pm.expect(cuerpo.motivo).to.eql(\"Usuario inactivo o suspendido\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            },
+            "description": "Caso 8. El login funciona; la denegación ocurre en authorize y queda auditada."
+          }
+        },
+        {
+          "name": "Login · Invitado externo VENCIDO (2025-01-01)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = INVITADO\", () => pm.expect(json.usuario.rol).to.eql(\"INVITADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "invitado.vencido@externo.com\n\nCaso 14. El login funciona; la denegación por P9 ocurre en authorize (Bloque 3).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"invitado.vencido@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "GET /auditoria · Invitado VENCIDO (P9)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                  "pm.test(\"etapa = ESTADO\", () => pm.expect(cuerpo.etapa).to.eql(\"ESTADO\"));",
+                  "pm.test(\"política = P9\", () => pm.expect(cuerpo.politica).to.eql(\"P9\"));",
+                  "pm.test(\"motivo = Acceso temporal vencido\", () => pm.expect(cuerpo.motivo).to.eql(\"Acceso temporal vencido\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria"
+              ]
+            },
+            "description": "Caso 14."
+          }
+        },
+        {
+          "name": "Login · contraseña incorrecta (deja un registro DENEGADO)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = CREDENCIALES_INVALIDAS\", () => pm.expect(cuerpo.error).to.eql(\"CREDENCIALES_INVALIDAS\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · Auditor · GLOBAL · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = AUDITOR\", () => pm.expect(json.usuario.rol).to.eql(\"AUDITOR\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "auditor@techcorp.pe\n\nCaso 7 (intenta modificar: RBAC). Puede leer auditoría.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"auditor@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol AUDITOR",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = AUDITOR\", () => pm.expect(json.usuario.rol).to.eql(\"AUDITOR\"));",
+                  "pm.test(\"tiene exactamente estos permisos: AUDIT_READ, DOC_DOWNLOAD, DOC_READ\", () => pm.expect(json.permisos).to.have.members([\"AUDIT_READ\",\"DOC_DOWNLOAD\",\"DOC_READ\"]));",
+                  "pm.test(\"y ninguno más (3)\", () => pm.expect(json.permisos).to.have.lengthOf(3));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Auditor lista todo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"el registro más reciente es la propia lectura (consultar la auditoría también se audita)\", () => { const r = json.registros[0]; pm.expect(r.usuario_correo).to.eql(\"auditor@techcorp.pe\"); pm.expect(r.accion).to.eql(\"AUDIT_READ\"); pm.expect(r.resultado).to.eql(\"PERMITIDO\"); pm.expect(r.etapa).to.eql(\"COMPLETA\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?limite=10",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?limite=10"
+              ]
+            },
+            "description": "Guarda un registro por cada lectura: la auditoría también se audita."
+          }
+        },
+        {
+          "name": "Traza · el RBAC denegado del Empleado quedó registrado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                  "pm.test(\"resultado = DENEGADO, etapa = RBAC, política = ninguna\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"DENEGADO\"); pm.expect(r.etapa).to.eql(\"RBAC\"); pm.expect(r.politica_codigo).to.eql(null); });",
+                  "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(json.registros[0].motivo).to.eql(\"Denegado por RBAC\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?usuario=empleado.fin@techcorp.pe&accion=AUDIT_READ&resultado=DENEGADO&etapa=RBAC&limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?usuario=empleado.fin@techcorp.pe&accion=AUDIT_READ&resultado=DENEGADO&etapa=RBAC&limite=1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Traza · P7 del usuario inactivo quedó registrado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                  "pm.test(\"resultado = DENEGADO, etapa = ESTADO, política = P7\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"DENEGADO\"); pm.expect(r.etapa).to.eql(\"ESTADO\"); pm.expect(r.politica_codigo).to.eql(\"P7\"); });",
+                  "pm.test(\"motivo = Usuario inactivo o suspendido\", () => pm.expect(json.registros[0].motivo).to.eql(\"Usuario inactivo o suspendido\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?usuario=inactivo@techcorp.pe&etapa=ESTADO&limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?usuario=inactivo@techcorp.pe&etapa=ESTADO&limite=1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Traza · P9 del invitado vencido quedó registrado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                  "pm.test(\"resultado = DENEGADO, etapa = ESTADO, política = P9\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"DENEGADO\"); pm.expect(r.etapa).to.eql(\"ESTADO\"); pm.expect(r.politica_codigo).to.eql(\"P9\"); });",
+                  "pm.test(\"motivo = Acceso temporal vencido\", () => pm.expect(json.registros[0].motivo).to.eql(\"Acceso temporal vencido\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?usuario=invitado.vencido@externo.com&etapa=ESTADO&limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?usuario=invitado.vencido@externo.com&etapa=ESTADO&limite=1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Traza · el login fallido quedó registrado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                  "pm.test(\"resultado = DENEGADO, etapa = AUTENTICACION, política = ninguna\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"DENEGADO\"); pm.expect(r.etapa).to.eql(\"AUTENTICACION\"); pm.expect(r.politica_codigo).to.eql(null); });",
+                  "pm.test(\"motivo = Credenciales inválidas\", () => pm.expect(json.registros[0].motivo).to.eql(\"Credenciales inválidas\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?accion=login&resultado=DENEGADO&usuario=empleado.fin@techcorp.pe&limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?accion=login&resultado=DENEGADO&usuario=empleado.fin@techcorp.pe&limite=1"
+              ]
+            },
+            "description": "El filtro 'accion' no distingue mayúsculas de minúsculas."
+          }
+        },
+        {
+          "name": "Traza · un login exitoso quedó registrado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                  "pm.test(\"resultado = PERMITIDO, etapa = AUTENTICACION, política = ninguna\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"PERMITIDO\"); pm.expect(r.etapa).to.eql(\"AUTENTICACION\"); pm.expect(r.politica_codigo).to.eql(null); });",
+                  "pm.test(\"motivo = Inicio de sesión exitoso\", () => pm.expect(json.registros[0].motivo).to.eql(\"Inicio de sesión exitoso\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?accion=LOGIN&resultado=PERMITIDO&usuario=auditor@techcorp.pe&limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?accion=LOGIN&resultado=PERMITIDO&usuario=auditor@techcorp.pe&limite=1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Filtro · fechas (desde en el futuro no devuelve nada)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"total = 0\", () => pm.expect(json.total).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?desde=2999-01-01T00:00:00Z",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?desde=2999-01-01T00:00:00Z"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Paginación · limite=2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"como mucho 2 registros y se devuelve la paginación pedida\", () => { pm.expect(json.registros.length).to.be.at.most(2); pm.expect(json.limite).to.eql(2); pm.expect(json.pagina).to.eql(1); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?limite=2&pagina=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?limite=2&pagina=1"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validación · limite=1000 (máximo 200)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                  "pm.test(\"el detalle señala el campo 'limite'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"limite\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?limite=1000",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?limite=1000"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Validación · resultado inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                  "pm.test(\"el detalle señala el campo 'resultado'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"resultado\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?resultado=QUIZAS",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?resultado=QUIZAS"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login · Gerente · FINANZAS · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = GERENTE\", () => pm.expect(json.usuario.rol).to.eql(\"GERENTE\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "gerente.fin@techcorp.pe\n\nCasos 6 (elimina en su área) y 17 (modifica documento de un empleado: excepción de P3).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"gerente.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol GERENTE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = GERENTE\", () => pm.expect(json.usuario.rol).to.eql(\"GERENTE\"));",
+                  "pm.test(\"tiene exactamente estos permisos: AUDIT_READ, DOC_APPROVE, DOC_CREATE, DOC_DELETE, DOC_DOWNLOAD, DOC_READ, DOC_UPDATE\", () => pm.expect(json.permisos).to.have.members([\"AUDIT_READ\",\"DOC_APPROVE\",\"DOC_CREATE\",\"DOC_DELETE\",\"DOC_DOWNLOAD\",\"DOC_READ\",\"DOC_UPDATE\"]));",
+                  "pm.test(\"y ninguno más (7)\", () => pm.expect(json.permisos).to.have.lengthOf(7));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Gerente FINANZAS ve solo a su departamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "const ajenos = [\"auditor@techcorp.pe\", \"admin@techcorp.pe\", \"empleado.rrhh@techcorp.pe\", \"invitado@externo.com\", \"invitado.vencido@externo.com\"];",
+                  "pm.test(\"no aparece nadie de otro departamento\", () => pm.expect(json.registros.filter(r => ajenos.includes(r.usuario_correo))).to.have.lengthOf(0));",
+                  "pm.test(\"tampoco registros sin usuario (correos inexistentes, pruebas del sistema)\", () => pm.expect(json.registros.filter(r => r.usuario_id === null)).to.have.lengthOf(0));",
+                  "pm.test(\"sí ve la actividad de su gente (el usuario inactivo es de FINANZAS)\", () => pm.expect(json.registros.map(r => r.usuario_correo)).to.include(\"inactivo@techcorp.pe\"));",
+                  "pm.environment.set(\"totalGerente\", json.total);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?limite=200",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?limite=200"
+              ]
+            },
+            "description": "Alcance por departamento: se decide por el atributo 'departamento' del solicitante (GLOBAL ve todo), no por el nombre del rol."
+          }
+        },
+        {
+          "name": "Gerente no ve al invitado aunque lo pida con un filtro",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"total = 0\", () => pm.expect(json.total).to.eql(0));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?usuario=invitado",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?usuario=invitado"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Login · Admin · GLOBAL · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = ADMIN\", () => pm.expect(json.usuario.rol).to.eql(\"ADMIN\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "admin@techcorp.pe\n\nTodos los permisos. Departamento GLOBAL: exceptuado de P1.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · permisos del rol ADMIN",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"rol = ADMIN\", () => pm.expect(json.usuario.rol).to.eql(\"ADMIN\"));",
+                  "pm.test(\"tiene exactamente estos permisos: AUDIT_READ, DOC_APPROVE, DOC_CREATE, DOC_DELETE, DOC_DOWNLOAD, DOC_READ, DOC_UPDATE, ROLE_ASSIGN, USER_MANAGE\", () => pm.expect(json.permisos).to.have.members([\"AUDIT_READ\",\"DOC_APPROVE\",\"DOC_CREATE\",\"DOC_DELETE\",\"DOC_DOWNLOAD\",\"DOC_READ\",\"DOC_UPDATE\",\"ROLE_ASSIGN\",\"USER_MANAGE\"]));",
+                  "pm.test(\"y ninguno más (9)\", () => pm.expect(json.permisos).to.have.lengthOf(9));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "La lista sale de la tabla rol_permiso (RBAC en la BD, no en el código) y debe coincidir con la matriz de la guía."
+          }
+        },
+        {
+          "name": "GET /auditoria · Admin (GLOBAL) ve todo",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                  "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                  "pm.test(\"ve más registros que el gerente\", () => pm.expect(json.total).to.be.above(Number(pm.environment.get(\"totalGerente\") || 0)));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auditoria?limite=1",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auditoria?limite=1"
+              ]
             }
           }
         }

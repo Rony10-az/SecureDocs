@@ -32,6 +32,10 @@ export class AppError extends Error {
   static noEncontrado(mensaje = "Recurso no encontrado") {
     return new AppError(404, "NO_ENCONTRADO", mensaje);
   }
+  /** 403 con el detalle que exige la guía: en qué etapa, qué política y por qué. */
+  static accesoDenegado(d: { etapa: string; politica: string | null; motivo: string }) {
+    return new AppError(403, "ACCESO_DENEGADO", d.motivo, { etapa: d.etapa, politica: d.politica, motivo: d.motivo });
+  }
 }
 
 /** Ruta que no existe: se registra al final de app.ts. */

@@ -8,6 +8,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "typecheck": "tsc --noEmit",
+    "typecheck:tests": "tsc -p tsconfig.test.json",
     "db:migrate": "prisma migrate dev",
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
@@ -46,6 +47,6 @@
     "supertest": "^7.3.0",
     "ts-jest": "^29.4.13",
     "tsx": "^4.23.15",
-    "typescript": "^7.0.2"
+    "typescript": "5.9"
   }
 }
