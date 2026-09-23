@@ -13,7 +13,11 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "test": "jest --runInBand",
+    "test": "jest --runInBand --reporters=default --verbose",
+    "test:unit": "jest --selectProjects unit --reporters=default",
+    "test:integracion": "jest --runInBand --selectProjects integracion --reporters=default --verbose",
+    "test:cobertura": "jest --runInBand --coverage --coverageProvider=v8 --reporters=default --coverageReporters=text-summary --coverageReporters=text --coverageReporters=html",
+    "test:casos": "jest --runInBand --selectProjects integracion --reporters=default --verbose casos-guia",
     "test:http": "npx --yes newman run http/SecureDocs.postman_collection.json -e http/SecureDocs.local.postman_environment.json"
   },
   "prisma": {

@@ -1,10 +1,36 @@
-/** @type {import('jest').Config} */
-module.exports = {
+/**
+ * Dos proyectos:
+ *  - unit:        pruebas sin infraestructura (motor, esquemas, validación de archivos...). No necesitan Docker.
+ *  - integracion: la API real (Supertest) con PostgreSQL y MinIO reales, incluidos los 17 casos de la guía.
+ *                 Necesitan `docker compose up -d` y la base de datos sembrada (`npm run db:seed`).
+ *
+ * @type {import('jest').Config}
+ */
+const base = {
   testEnvironment: "node",
-  roots: ["<rootDir>/tests"],
-  testMatch: ["**/*.test.ts"],
   setupFiles: ["<rootDir>/tests/setup-env.ts"],
   transform: {
-    "^.+\.ts$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
+    "^.+[.]ts$": ["ts-jest", { tsconfig: "tsconfig.test.json" }],
   },
+};
+
+module.exports = {
+  // Cobertura (npm run test:cobertura): todo `src/` salvo el arranque del servidor, que solo abre el puerto
+  collectCoverageFrom: ["src/**/*.ts", "!src/server.ts"],
+  coverageDirectory: "coverage",
+  projects: [
+    {
+      ...base,
+      displayName: "unit",
+      roots: ["<rootDir>/tests/unit"],
+      testMatch: ["**/*.test.ts"],
+    },
+    {
+      ...base,
+      displayName: "integracion",
+      roots: ["<rootDir>/tests/integracion"],
+      testMatch: ["**/*.test.ts"],
+      setupFilesAfterEnv: ["<rootDir>/tests/integracion/setup.ts"],
+    },
+  ],
 };
