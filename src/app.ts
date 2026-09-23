@@ -7,6 +7,7 @@ import { prisma } from "./db";
 import { manejadorErrores, rutaNoEncontrada } from "./errors";
 import { auditoriaRouter } from "./modules/auditoria/auditoria.routes";
 import { documentosRouter } from "./modules/documentos/documentos.routes";
+import { usuariosRouter } from "./modules/usuarios/usuarios.routes";
 
 export const app = express();
 
@@ -24,6 +25,7 @@ app.use(contextoEntorno);
 app.use("/auth", authRouter);
 app.use("/auditoria", auditoriaRouter);
 app.use("/documentos", documentosRouter);
+app.use("/usuarios", usuariosRouter);
 
 // Siempre al final: ruta inexistente -> 404 JSON; cualquier error -> respuesta uniforme
 app.use(rutaNoEncontrada);

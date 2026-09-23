@@ -5,6 +5,7 @@ import { DEPARTAMENTO_GLOBAL, type RecursoCtx } from "../../authorization/tipos"
 import { normalizarTexto } from "../../context/entorno";
 import { prisma } from "../../db";
 import { AppError } from "../../errors";
+import { idDelRecurso, idDeParams } from "../comun";
 import { crearDocumentoSchema, type CrearDocumentoDto } from "./documentos.schemas";
 import { leerMultipart } from "./subida";
 
@@ -23,19 +24,8 @@ export function recursoDesdeDocumento(d: DocumentoConDepartamento): RecursoCtx {
   };
 }
 
-/** El :id de la URL. Un id mal formado es un 400 y no llega a tocar la base de datos. */
-export function idDeParams(req: Request): number {
-  const id = Number(req.params.id);
-  if (!Number.isSafeInteger(id) || id < 1) throw AppError.validacion("El id debe ser un número entero positivo");
-  return id;
-}
-
-/** El id del documento que `authorize` dejó cargado en la petición. */
-export function idDelRecurso(req: Request): number {
-  const id = req.recurso?.id;
-  if (id === undefined) throw new Error("authorize no dejó el recurso cargado en la petición");
-  return id;
-}
+// (idDeParams e idDelRecurso viven en ../comun; se re-exportan para no tocar las rutas de documentos)
+export { idDelRecurso, idDeParams };
 
 /** Cargador para las rutas /documentos/:id... Un documento en la papelera (borrado lógico) cuenta como inexistente. */
 export async function cargarDocumento(req: Request): Promise<RecursoCtx | null> {

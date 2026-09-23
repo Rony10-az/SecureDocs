@@ -56,30 +56,65 @@ async function auditarDecision(
  */
 export function authorize(accion: Accion, cargarRecurso?: CargadorRecurso): RequestHandler[] {
   const decidir: RequestHandler = async (req, res, next) => {
-    const usuario = usuarioActual(req);
-    const base = { usuario, entorno: req.entorno };
-
-    let recurso: RecursoCtx | undefined;
-    let decision: Decision = await autorizador.decidirPrevia(base, accion);
-
-    if (decision.permitido) {
-      // El recurso se carga solo si el usuario pasó estado y RBAC: no se filtra su existencia a quien no debe
-      if (cargarRecurso) {
-        const cargado = await cargarRecurso(req, res);
-        if (!cargado) throw AppError.noEncontrado();
-        recurso = cargado;
-      }
-      decision = await autorizador.decidirAbac({ ...base, recurso }, accion);
-    }
-
-    await auditarDecision(req, accion, recurso, decision, "Acceso permitido");
-    if (!decision.permitido) throw AppError.accesoDenegado(decision);
-
-    req.recurso = recurso;
+    req.recurso = await autorizarAccion(req, res, accion, cargarRecurso);
     next();
   };
 
   return [authenticate, decidir];
+}
+
+/**
+ * Una SEGUNDA autorización, condicional, que va después de un `authorize`: solo se exige si
+ * `condicion(req, res)` es verdadera. Ejemplo: PUT /usuarios/:id siempre exige USER_MANAGE, pero además
+ * exige ROLE_ASSIGN únicamente cuando el cuerpo cambia el rol.
+ *
+ *   router.put("/:id", ...authorize("USER_MANAGE", cargarUsuario), leerCambios,
+ *              ...authorizeSi("ROLE_ASSIGN", cambiaElRol, (req) => req.recurso ?? null), controlador)
+ *
+ * Es una decisión más, con su propio registro de auditoría. No lleva `authenticate`: ya lo puso el `authorize` previo.
+ */
+export function authorizeSi(
+  accion: Accion,
+  condicion: (req: Request, res: Response) => boolean,
+  cargarRecurso?: CargadorRecurso,
+): RequestHandler[] {
+  const decidir: RequestHandler = async (req, res, next) => {
+    if (condicion(req, res)) {
+      const recurso = await autorizarAccion(req, res, accion, cargarRecurso);
+      if (recurso) req.recurso = recurso;
+    }
+    next();
+  };
+
+  return [decidir];
+}
+
+/** El flujo completo de una decisión: P7/P9 -> RBAC -> [recurso] -> ABAC -> auditoría. Lanza 403 si se deniega. */
+async function autorizarAccion(
+  req: Request,
+  res: Response,
+  accion: Accion,
+  cargarRecurso?: CargadorRecurso,
+): Promise<RecursoCtx | undefined> {
+  const usuario = usuarioActual(req);
+  const base = { usuario, entorno: req.entorno };
+
+  let recurso: RecursoCtx | undefined;
+  let decision: Decision = await autorizador.decidirPrevia(base, accion);
+
+  if (decision.permitido) {
+    // El recurso se carga solo si el usuario pasó estado y RBAC: no se filtra su existencia a quien no debe
+    if (cargarRecurso) {
+      const cargado = await cargarRecurso(req, res);
+      if (!cargado) throw AppError.noEncontrado();
+      recurso = cargado;
+    }
+    decision = await autorizador.decidirAbac({ ...base, recurso }, accion);
+  }
+
+  await auditarDecision(req, accion, recurso, decision, "Acceso permitido");
+  if (!decision.permitido) throw AppError.accesoDenegado(decision);
+  return recurso;
 }
 
 /**

@@ -1,5 +1,5 @@
 import { PrismaClient, type Prisma } from "@prisma/client";
-import bcrypt from "bcryptjs";
+import { hashPassword } from "../src/auth/password";
 import {
   DEPARTAMENTOS,
   DOCUMENTOS,
@@ -55,7 +55,7 @@ async function main() {
   const roles = Object.fromEntries((await prisma.rol.findMany()).map((r) => [r.nombre, r.id]));
 
   // Usuarios
-  const hash = await bcrypt.hash(PASSWORD_PRUEBA, 10);
+  const hash = await hashPassword(PASSWORD_PRUEBA); // mismo costo que usa la API
   for (const u of USUARIOS) {
     const datos = {
       nombre: u.nombre,

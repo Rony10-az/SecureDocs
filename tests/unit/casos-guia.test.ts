@@ -50,9 +50,9 @@ test.each(casos)("caso %i · %s", async (_numero, _escenario, ctx, accion, esper
   expect(await autorizador.decidir(ctx, accion)).toEqual(esperado);
 });
 
-test("los 17 casos ejercitan las 10 políticas y las tres etapas de denegación", () => {
+test("los 17 casos ejercitan las 10 políticas de la guía (P11 es del grupo y se prueba aparte) y las tres etapas", () => {
   const denegaciones = casos.map((c) => c[4]).filter((d): d is Extract<Decision, { permitido: false }> => !d.permitido);
   const politicasCubiertas = new Set(denegaciones.map((d) => d.politica).filter(Boolean));
-  expect(politicasCubiertas).toEqual(new Set(POLITICAS.map((p) => p.codigo)));
+  expect(politicasCubiertas).toEqual(new Set(POLITICAS.map((p) => p.codigo).filter((c) => c !== "P11")));
   expect(new Set(denegaciones.map((d) => d.etapa))).toEqual(new Set(["ESTADO", "RBAC", "ABAC"]));
 });

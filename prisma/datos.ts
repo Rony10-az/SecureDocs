@@ -128,6 +128,19 @@ export const POLITICAS: PoliticaDef[] = [
     condicion: { "usuario.id": { neqAttr: "recurso.propietario_id" } },
     motivo_denegacion: "No puede aprobar su propio documento",
   }),
+  // P11 no viene en la guía: sale de la línea de la API "nadie cambia su propio rol" (PUT /usuarios/:id).
+  // Se modela como política (dato en la BD) y no como un `if` en el controlador, igual que P10.
+  // Al CREAR un usuario todavía no existe `recurso.id`: el "si" hace que la política no estorbe en las altas.
+  politica({
+    codigo: "P11", nombre: "Autogestión de roles", etapa: "ABAC", orden: 90,
+    descripcion: "Nadie cambia su propio rol (ni siquiera un administrador).",
+    acciones: ["ROLE_ASSIGN"], roles_exceptuados: [],
+    condicion: {
+      si: { "recurso.id": { neq: null } },
+      entonces: { "usuario.id": { neqAttr: "recurso.id" } },
+    },
+    motivo_denegacion: "No puede cambiar su propio rol",
+  }),
 ];
 
 // ---------- Usuarios de prueba (contraseña común: PASSWORD_PRUEBA) ----------

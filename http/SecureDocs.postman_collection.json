@@ -2,7 +2,7 @@
   "info": {
     "_postman_id": "95855748-1422-47dd-8402-8ec11c7dda7b",
     "name": "SecureDocs API",
-    "description": "# SecureDocs — TechCorp S.A.\n\nColección de pruebas HTTP. Se va ampliando bloque por bloque (ahora: Bloque 2 — login JWT y contexto; Bloque 3 — RBAC, ABAC y auditoría; Bloque 4 — documentos y archivos).\n\n## Cómo usarla\n1. Importa la colección **y** el environment `SecureDocs - Local`, y selecciónalo arriba a la derecha.\n2. Levanta la API (`npm run dev`) y ejecuta un **login** (carpeta 1 o 3): guarda el token en `{{token}}`.\n3. Los demás requests usan ese token automáticamente (Authorization: Bearer).\n\n## Headers de entorno (simulados)\n| Header | Ejemplo | Política |\n|---|---|---|\n| `X-Ubicacion` | `PERU`, `CHILE` | P5 (país) |\n| `X-Dispositivo` | `CORPORATIVO`, `PERSONAL` | P6 |\n| `X-Hora` | `20:00` (solo fuera de producción) | P4 (horario) |\n\nContraseña de todos los usuarios de prueba: `Secure123!`.\n\n## Subir archivos\nLos requests con archivo usan `tests/fixtures/*` (rutas relativas al proyecto). En Postman fija *Settings → Working directory* en la carpeta del proyecto o selecciona el archivo a mano en el campo `archivo`. Desde consola: `npm run test:http` (se ejecuta en la raíz del proyecto).\n\nFunciona también en **Bruno**: *Import Collection → Postman Collection*.",
+    "description": "# SecureDocs — TechCorp S.A.\n\nColección de pruebas HTTP. Se va ampliando bloque por bloque (ahora: Bloque 2 — login JWT y contexto; Bloque 3 — RBAC, ABAC y auditoría; Bloque 4 — documentos y archivos; Bloque 5 — usuarios).\n\n## Cómo usarla\n1. Importa la colección **y** el environment `SecureDocs - Local`, y selecciónalo arriba a la derecha.\n2. Levanta la API (`npm run dev`) y ejecuta un **login** (carpeta 1 o 3): guarda el token en `{{token}}`.\n3. Los demás requests usan ese token automáticamente (Authorization: Bearer).\n\n## Headers de entorno (simulados)\n| Header | Ejemplo | Política |\n|---|---|---|\n| `X-Ubicacion` | `PERU`, `CHILE` | P5 (país) |\n| `X-Dispositivo` | `CORPORATIVO`, `PERSONAL` | P6 |\n| `X-Hora` | `20:00` (solo fuera de producción) | P4 (horario) |\n\nContraseña de todos los usuarios de prueba: `Secure123!`.\n\n## Subir archivos\nLos requests con archivo usan `tests/fixtures/*` (rutas relativas al proyecto). En Postman fija *Settings → Working directory* en la carpeta del proyecto o selecciona el archivo a mano en el campo `archivo`. Desde consola: `npm run test:http` (se ejecuta en la raíz del proyecto).\n\nFunciona también en **Bruno**: *Import Collection → Postman Collection*.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "auth": {
@@ -9953,6 +9953,5202 @@
                     {
                       "key": "token",
                       "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "6 · Usuarios (Bloque 5)",
+      "description": "USER_MANAGE para listar, crear y editar usuarios; ROLE_ASSIGN además cuando se asigna o cambia un rol; y P11: nadie cambia su propio rol. Los cambios surten efecto de inmediato porque el token solo lleva el id. Cada corrida crea usuarios con un correo único y los desactiva al final.",
+      "item": [
+        {
+          "name": "6.0 Sesiones",
+          "item": [
+            {
+              "name": "Sesión · Admin (guarda tokenAdmin e idAdmin)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenAdmin\", json.token); pm.environment.set(\"idAdmin\", json.usuario.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"admin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Gerente FINANZAS",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenGerente\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"gerente.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Supervisora Sara",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenSara\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"supervisor.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Empleado Eduardo",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenEduardo\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Empleada Elena",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenElena\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"empleado2.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Practicante nivel 2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenPracticante\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"practicante.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Empleada RRHH",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenRrhh\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"empleado.rrhh@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Auditor",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenAuditor\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"auditor@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Usuario inactivo",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenInactivo\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"inactivo@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Invitado vigente",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenInvitado\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"invitado@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Sesión · Invitado vencido",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenVencido\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"invitado.vencido@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.1 Solo quien tiene USER_MANAGE gestiona usuarios",
+          "item": [
+            {
+              "name": "Empleado (Eduardo) no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEduardo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Supervisora (Sara) no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenSara}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Gerente no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenGerente}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Auditor no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Empleada de RRHH no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenRrhh}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Invitado no gestiona usuarios (RBAC)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenInvitado}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Eduardo intenta crear un usuario -> RBAC",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"nadie@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenEduardo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Sara intenta editar a otro usuario -> RBAC",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = RBAC\", () => pm.expect(cuerpo.etapa).to.eql(\"RBAC\"));",
+                      "pm.test(\"política = ninguna (es RBAC)\", () => pm.expect(cuerpo.politica).to.eql(null));",
+                      "pm.test(\"motivo = Denegado por RBAC\", () => pm.expect(cuerpo.motivo).to.eql(\"Denegado por RBAC\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idAdmin}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idAdmin}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Hackeado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenSara}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Usuario inactivo -> ESTADO P7",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ESTADO\", () => pm.expect(cuerpo.etapa).to.eql(\"ESTADO\"));",
+                      "pm.test(\"política = P7\", () => pm.expect(cuerpo.politica).to.eql(\"P7\"));",
+                      "pm.test(\"motivo = Usuario inactivo o suspendido\", () => pm.expect(cuerpo.motivo).to.eql(\"Usuario inactivo o suspendido\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenInactivo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Invitado vencido -> ESTADO P9",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ESTADO\", () => pm.expect(cuerpo.etapa).to.eql(\"ESTADO\"));",
+                      "pm.test(\"política = P9\", () => pm.expect(cuerpo.politica).to.eql(\"P9\"));",
+                      "pm.test(\"motivo = Acceso temporal vencido\", () => pm.expect(cuerpo.motivo).to.eql(\"Acceso temporal vencido\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenVencido}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Sin token -> 401",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = NO_AUTENTICADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_AUTENTICADO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.2 Alta de usuarios",
+          "item": [
+            {
+              "name": "Crear usuario (EMPLEADO, FINANZAS, nivel 3)",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.environment.set(\"correoNuevo\", \"postman.\" + Date.now() + \"@techcorp.pe\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"no expone contraseñas ni hashes\", () => pm.expect(pm.response.text()).to.not.match(/password|\\$2[aby]\\$/i));",
+                      "pm.test(\"trae los datos y NO la contraseña\", () => { pm.expect(json.rol).to.eql(\"EMPLEADO\"); pm.expect(json.departamento).to.eql(\"FINANZAS\"); pm.expect(json.estado).to.eql(\"ACTIVO\"); pm.expect(json.tipo_contrato).to.eql(\"INTERNO\"); pm.expect(json).to.not.have.property(\"password\"); pm.expect(json).to.not.have.property(\"password_hash\"); });",
+                      "pm.environment.set(\"idNuevo\", json.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "description": "Exige USER_MANAGE y, como asigna un rol, también ROLE_ASSIGN (dos decisiones auditadas).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "El usuario nuevo inicia sesión con su contraseña",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.environment.set(\"tokenNuevo\", json.token);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave-Segura-2026x\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Me · su rol y sus permisos salen de la BD",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"EMPLEADO: puede leer, no aprobar\", () => { pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"); pm.expect(json.permisos).to.include(\"DOC_READ\"); pm.expect(json.permisos).to.not.include(\"DOC_APPROVE\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Correo repetido -> 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = CONFLICTO\", () => pm.expect(cuerpo.error).to.eql(\"CONFLICTO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Contraseña débil -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                      "pm.test(\"el detalle señala el campo 'password'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"password\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "description": "Mínimo 10 caracteres, con mayúsculas, minúsculas y números, y hasta 72 bytes (límite de bcrypt).",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"corta\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Correo mal formado -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                      "pm.test(\"el detalle señala el campo 'correo'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"correo\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"esto-no-es-correo\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Nivel de seguridad 9 -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                      "pm.test(\"el detalle señala el campo 'nivel_seguridad'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"nivel_seguridad\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 9\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Rol inexistente -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"SUPERHEROE\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Departamento inexistente -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"MARTE\",\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "EXTERNO sin fecha de expiración -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3,\n  \"tipo_contrato\": \"EXTERNO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "INTERNO con fecha de expiración -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3,\n  \"fecha_expiracion\": \"2031-01-01\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mass assignment · el campo 'password_hash' se rechaza",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3,\n  \"password_hash\": \"x\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mass assignment · el campo 'id' se rechaza",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario de prueba Postman\",\n  \"correo\": \"otro@techcorp.pe\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"EMPLEADO\",\n  \"departamento\": \"FINANZAS\",\n  \"nivel_seguridad\": 3,\n  \"id\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cuerpo vacío -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Crear un invitado EXTERNO con fecha de expiración futura",
+              "event": [
+                {
+                  "listen": "prerequest",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.environment.set(\"correoExterno\", \"externo.\" + Date.now() + \"@techcorp.pe\");"
+                    ]
+                  }
+                },
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 201\", () => pm.response.to.have.status(201));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"EXTERNO y la fecha se guarda tal cual\", () => { pm.expect(json.tipo_contrato).to.eql(\"EXTERNO\"); pm.expect(json.fecha_expiracion).to.eql(\"2031-12-31\"); });",
+                      "pm.environment.set(\"idExterno\", json.id);"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Invitado de prueba Postman\",\n  \"correo\": \"{{correoExterno}}\",\n  \"password\": \"Clave-Segura-2026x\",\n  \"rol\": \"INVITADO\",\n  \"departamento\": \"GLOBAL\",\n  \"nivel_seguridad\": 1,\n  \"tipo_contrato\": \"EXTERNO\",\n  \"fecha_expiracion\": \"2031-12-31\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.3 Consultar",
+          "item": [
+            {
+              "name": "Lista filtrada por texto (el correo del usuario nuevo)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"no expone contraseñas ni hashes\", () => pm.expect(pm.response.text()).to.not.match(/password|\\$2[aby]\\$/i));",
+                      "pm.test(\"encuentra exactamente al usuario creado\", () => { pm.expect(json.total).to.eql(1); pm.expect(json.usuarios[0].correo).to.eql(pm.environment.get(\"correoNuevo\")); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios?q={{correoNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ],
+                  "query": [
+                    {
+                      "key": "q",
+                      "value": "{{correoNuevo}}"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Lista · filtro por rol=AUDITOR",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"todos son AUDITOR\", () => { pm.expect(json.total).to.be.at.least(1); pm.expect(json.usuarios.every(u => u.rol === \"AUDITOR\")).to.eql(true); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios?rol=auditor",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ],
+                  "query": [
+                    {
+                      "key": "rol",
+                      "value": "auditor"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Lista · filtro por estado=INACTIVO",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"todos INACTIVOS\", () => pm.expect(json.usuarios.every(u => u.estado === \"INACTIVO\")).to.eql(true));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios?estado=INACTIVO",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ],
+                  "query": [
+                    {
+                      "key": "estado",
+                      "value": "INACTIVO"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Lista · paginación limite=2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"como mucho 2 y se devuelve el total\", () => { pm.expect(json.usuarios.length).to.be.at.most(2); pm.expect(json.limite).to.eql(2); pm.expect(json.total).to.be.above(2); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios?limite=2",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ],
+                  "query": [
+                    {
+                      "key": "limite",
+                      "value": "2"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Lista · limite=1000 -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                      "pm.test(\"el detalle señala el campo 'limite'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"limite\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios?limite=1000",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios"
+                  ],
+                  "query": [
+                    {
+                      "key": "limite",
+                      "value": "1000"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Detalle de un usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"no expone contraseñas ni hashes\", () => pm.expect(pm.response.text()).to.not.match(/password|\\$2[aby]\\$/i));",
+                      "pm.test(\"es el usuario creado\", () => pm.expect(json.correo).to.eql(pm.environment.get(\"correoNuevo\")));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Detalle · id inexistente -> 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = NO_ENCONTRADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_ENCONTRADO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/99999999",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "99999999"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Detalle · id mal formado -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/abc",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "abc"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.4 Cambios: surten efecto de inmediato (con el mismo token de antes)",
+          "item": [
+            {
+              "name": "Cambiar el nombre",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"solo cambió el nombre\", () => { pm.expect(json.nombre).to.eql(\"Usuario Postman renombrado\"); pm.expect(json.rol).to.eql(\"EMPLEADO\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario Postman renombrado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mismos valores -> 400 'no hay nada que actualizar'",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Usuario Postman renombrado\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cuerpo vacío -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mass assignment · 'id' no se puede tocar",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"id\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Mass assignment · 'password_hash' no se puede tocar",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password_hash\": \"x\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Rol inexistente -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rol\": \"SUPERHEROE\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Usuario inexistente -> 404",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = NO_ENCONTRADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_ENCONTRADO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/99999999",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "99999999"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nombre\": \"Nadie\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cambiar el rol a SUPERVISOR (exige ROLE_ASSIGN)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"rol = SUPERVISOR\", () => pm.expect(json.rol).to.eql(\"SUPERVISOR\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rol\": \"SUPERVISOR\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Con el token de ANTES, /auth/me ya muestra el rol nuevo y DOC_APPROVE",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"SUPERVISOR con DOC_APPROVE, sin volver a iniciar sesión\", () => { pm.expect(json.usuario.rol).to.eql(\"SUPERVISOR\"); pm.expect(json.permisos).to.include(\"DOC_APPROVE\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/me",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "me"
+                  ]
+                },
+                "description": "El token solo lleva el id: el rol y los permisos se leen de la BD en cada petición.",
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Desactivar al usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"INACTIVO\", () => pm.expect(json.estado).to.eql(\"INACTIVO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"INACTIVO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Con el token de antes, ya recibe 403 P7 (efecto inmediato)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ESTADO\", () => pm.expect(cuerpo.etapa).to.eql(\"ESTADO\"));",
+                      "pm.test(\"política = P7\", () => pm.expect(cuerpo.politica).to.eql(\"P7\"));",
+                      "pm.test(\"motivo = Usuario inactivo o suspendido\", () => pm.expect(cuerpo.motivo).to.eql(\"Usuario inactivo o suspendido\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/documentos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "documentos"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reactivar al usuario",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"ACTIVO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Reactivado: vuelve a leer documentos con el mismo token",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/documentos",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "documentos"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Bajarle el nivel de seguridad a 1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"nivel 1\", () => pm.expect(json.nivel_seguridad).to.eql(1));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nivel_seguridad\": 1\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "De inmediato ya no lee el Presupuesto (nivel 2): P2",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ABAC\", () => pm.expect(cuerpo.etapa).to.eql(\"ABAC\"));",
+                      "pm.test(\"política = P2\", () => pm.expect(cuerpo.politica).to.eql(\"P2\"));",
+                      "pm.test(\"motivo = Nivel de seguridad insuficiente\", () => pm.expect(cuerpo.motivo).to.eql(\"Nivel de seguridad insuficiente\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/documentos/{{docPresupuesto}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "documentos",
+                    "{{docPresupuesto}}"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Devolverle el nivel 3",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"nivel_seguridad\": 3\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Cambiarle el departamento a RRHH",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"RRHH\", () => pm.expect(json.departamento).to.eql(\"RRHH\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departamento\": \"rrhh\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "De inmediato ya no lee documentos de FINANZAS: P1",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ABAC\", () => pm.expect(cuerpo.etapa).to.eql(\"ABAC\"));",
+                      "pm.test(\"política = P1\", () => pm.expect(cuerpo.politica).to.eql(\"P1\"));",
+                      "pm.test(\"motivo = Documento de otro departamento\", () => pm.expect(cuerpo.motivo).to.eql(\"Documento de otro departamento\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/documentos/{{docPresupuesto}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "documentos",
+                    "{{docPresupuesto}}"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenNuevo}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Devolverle el departamento FINANZAS",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"departamento\": \"FINANZAS\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Restablecer la contraseña (una débil -> 400)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                      "pm.test(\"el detalle señala el campo 'password'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"password\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password\": \"corta\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Restablecer la contraseña",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"no expone contraseñas ni hashes\", () => pm.expect(pm.response.text()).to.not.match(/password|\\$2[aby]\\$/i));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"password\": \"Otra-Clave-2027y\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "La contraseña vieja ya no sirve (401)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = CREDENCIALES_INVALIDAS\", () => pm.expect(cuerpo.error).to.eql(\"CREDENCIALES_INVALIDAS\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Clave-Segura-2026x\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "La contraseña nueva sí (200)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auth/login",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auth",
+                    "login"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"{{correoNuevo}}\",\n  \"password\": \"Otra-Clave-2027y\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "noauth"
+                }
+              }
+            },
+            {
+              "name": "Cambiar el correo por uno que ya existe -> 409",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 409\", () => pm.response.to.have.status(409));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = CONFLICTO\", () => pm.expect(cuerpo.error).to.eql(\"CONFLICTO\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"correo\": \"admin@techcorp.pe\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "INTERNO -> EXTERNO sin fecha -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"tipo_contrato\": \"EXTERNO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "EXTERNO con fecha en el pasado -> 400",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idExterno}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idExterno}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fecha_expiracion\": \"2020-01-01\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Renovar el acceso del invitado con otra fecha futura",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"fecha nueva\", () => pm.expect(json.fecha_expiracion).to.eql(\"2032-06-30\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idExterno}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idExterno}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"fecha_expiracion\": \"2032-06-30\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.5 Roles y autogestión (P11)",
+          "item": [
+            {
+              "name": "Ana intenta cambiarse su propio rol -> 403 ABAC P11",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 403\", () => pm.response.to.have.status(403));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = ACCESO_DENEGADO\", () => pm.expect(cuerpo.error).to.eql(\"ACCESO_DENEGADO\"));",
+                      "pm.test(\"etapa = ABAC\", () => pm.expect(cuerpo.etapa).to.eql(\"ABAC\"));",
+                      "pm.test(\"política = P11\", () => pm.expect(cuerpo.politica).to.eql(\"P11\"));",
+                      "pm.test(\"motivo = No puede cambiar su propio rol\", () => pm.expect(cuerpo.motivo).to.eql(\"No puede cambiar su propio rol\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idAdmin}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idAdmin}}"
+                  ]
+                },
+                "description": "'Nadie cambia su propio rol' NO es un if en el código: es la política P11, un dato de la tabla politica.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rol\": \"EMPLEADO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Ana sigue siendo ADMIN",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"rol = ADMIN\", () => pm.expect(json.rol).to.eql(\"ADMIN\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idAdmin}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idAdmin}}"
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Pedir el rol que ya tiene no cuenta como cambio de rol (400, no 403)",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                      "const cuerpo = pm.response.json();",
+                      "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idAdmin}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idAdmin}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"rol\": \"ADMIN\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.6 La auditoría dejó constancia con detalle",
+          "item": [
+            {
+              "name": "USER_CREATE: el alta con el detalle de lo que se creó",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                      "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                      "pm.test(\"existe el alta del usuario de esta corrida, con su detalle y sin contraseña\", () => { const r = json.registros.find(x => String(x.motivo).includes(pm.environment.get(\"correoNuevo\"))); pm.expect(r).to.be.an(\"object\"); pm.expect(r.motivo).to.match(/^Creó al usuario .* \\(rol EMPLEADO, departamento FINANZAS, nivel 3/); pm.expect(r.recurso).to.match(/^usuario:[0-9]+$/); pm.expect(r.resultado).to.eql(\"PERMITIDO\"); pm.expect(JSON.stringify(r)).to.not.include(\"Clave-Segura-2026x\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auditoria?accion=USER_CREATE&usuario=admin@techcorp.pe&limite=5",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auditoria"
+                  ],
+                  "query": [
+                    {
+                      "key": "accion",
+                      "value": "USER_CREATE"
+                    },
+                    {
+                      "key": "usuario",
+                      "value": "admin@techcorp.pe"
+                    },
+                    {
+                      "key": "limite",
+                      "value": "5"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "USER_UPDATE: cada cambio con qué campo y de qué valor a cuál",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                      "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                      "pm.test(\"consta el cambio de rol, el de estado y el de nivel\", () => { const m = json.registros.map(x => String(x.motivo)).join(\" | \"); pm.expect(m).to.include(\"rol: EMPLEADO → SUPERVISOR\"); pm.expect(m).to.include(\"estado: ACTIVO → INACTIVO\"); pm.expect(m).to.include(\"nivel: 3 → 1\"); });",
+                      "pm.test(\"de la contraseña solo consta que se restableció (nunca su valor)\", () => { const m = json.registros.map(x => String(x.motivo)).join(\" | \"); pm.expect(m).to.include(\"contraseña restablecida\"); pm.expect(m).to.not.include(\"Otra-Clave-2027y\"); pm.expect(m).to.not.include(\"Clave-Segura-2026x\"); });"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auditoria?accion=USER_UPDATE&usuario=admin@techcorp.pe&limite=50",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auditoria"
+                  ],
+                  "query": [
+                    {
+                      "key": "accion",
+                      "value": "USER_UPDATE"
+                    },
+                    {
+                      "key": "usuario",
+                      "value": "admin@techcorp.pe"
+                    },
+                    {
+                      "key": "limite",
+                      "value": "50"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "ROLE_ASSIGN denegado por P11 quedó registrado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                      "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                      "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                      "pm.test(\"resultado = DENEGADO, etapa = ABAC, política = P11\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"DENEGADO\"); pm.expect(r.etapa).to.eql(\"ABAC\"); pm.expect(r.politica_codigo).to.eql(\"P11\"); });",
+                      "pm.test(\"motivo = No puede cambiar su propio rol\", () => pm.expect(json.registros[0].motivo).to.eql(\"No puede cambiar su propio rol\"));",
+                      "pm.test(\"el usuario afectado consta en 'recurso'\", () => pm.expect(json.registros[0].recurso).to.eql(\"usuario:\" + pm.environment.get(\"idAdmin\")));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auditoria?accion=ROLE_ASSIGN&resultado=DENEGADO&etapa=ABAC&limite=1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auditoria"
+                  ],
+                  "query": [
+                    {
+                      "key": "accion",
+                      "value": "ROLE_ASSIGN"
+                    },
+                    {
+                      "key": "resultado",
+                      "value": "DENEGADO"
+                    },
+                    {
+                      "key": "etapa",
+                      "value": "ABAC"
+                    },
+                    {
+                      "key": "limite",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "ROLE_ASSIGN permitido (el cambio de rol y el alta) quedó registrado",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                      "const json = pm.response.json();",
+                      "pm.test(\"forma { total, pagina, limite, registros }\", () => { [\"total\", \"pagina\", \"limite\", \"registros\"].forEach(k => pm.expect(json).to.have.property(k)); pm.expect(json.registros).to.be.an(\"array\"); });",
+                      "pm.test(\"cada registro trae los campos de la guía\", () => json.registros.forEach(r => [\"id\", \"fecha\", \"usuario_correo\", \"recurso\", \"accion\", \"resultado\", \"etapa\", \"motivo\", \"ip\"].forEach(k => pm.expect(r).to.have.property(k))));",
+                      "pm.test(\"existe el registro\", () => pm.expect(json.total).to.be.at.least(1));",
+                      "pm.test(\"resultado = PERMITIDO, etapa = COMPLETA, política = ninguna\", () => { const r = json.registros[0]; pm.expect(r.resultado).to.eql(\"PERMITIDO\"); pm.expect(r.etapa).to.eql(\"COMPLETA\"); pm.expect(r.politica_codigo).to.eql(null); });",
+                      "pm.test(\"motivo = Acceso permitido\", () => pm.expect(json.registros[0].motivo).to.eql(\"Acceso permitido\"));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/auditoria?accion=ROLE_ASSIGN&resultado=PERMITIDO&usuario=admin@techcorp.pe&limite=1",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "auditoria"
+                  ],
+                  "query": [
+                    {
+                      "key": "accion",
+                      "value": "ROLE_ASSIGN"
+                    },
+                    {
+                      "key": "resultado",
+                      "value": "PERMITIDO"
+                    },
+                    {
+                      "key": "usuario",
+                      "value": "admin@techcorp.pe"
+                    },
+                    {
+                      "key": "limite",
+                      "value": "1"
+                    }
+                  ]
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAuditor}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "6.7 Limpieza (desactiva a los usuarios creados en esta corrida)",
+          "item": [
+            {
+              "name": "Desactivar al usuario de prueba",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idNuevo}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idNuevo}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"INACTIVO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
+                      "type": "string"
+                    }
+                  ]
+                }
+              }
+            },
+            {
+              "name": "Desactivar al invitado de prueba",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ],
+              "request": {
+                "method": "PUT",
+                "header": [
+                  {
+                    "key": "X-Ubicacion",
+                    "value": "{{ubicacion}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Dispositivo",
+                    "value": "{{dispositivo}}",
+                    "type": "text"
+                  },
+                  {
+                    "key": "X-Hora",
+                    "value": "10:00",
+                    "type": "text",
+                    "description": "Fija en 10:00 para que no dependa de la hora real (solo con NODE_ENV distinto de production)."
+                  },
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json",
+                    "type": "text"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/usuarios/{{idExterno}}",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "usuarios",
+                    "{{idExterno}}"
+                  ]
+                },
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"estado\": \"INACTIVO\"\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                },
+                "auth": {
+                  "type": "bearer",
+                  "bearer": [
+                    {
+                      "key": "token",
+                      "value": "{{tokenAdmin}}",
                       "type": "string"
                     }
                   ]

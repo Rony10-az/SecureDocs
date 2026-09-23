@@ -2,10 +2,12 @@ import bcrypt from "bcryptjs";
 import type { UsuarioCtx } from "../context/tipos";
 import { incluirRelaciones, usuarioDesdeBD } from "../context/usuario";
 import { prisma } from "../db";
+import { COSTO_BCRYPT } from "./password";
 
 // Se compara contra este hash cuando el correo no existe: así la respuesta tarda lo mismo
 // que con un correo real y no se puede averiguar qué cuentas existen midiendo tiempos.
-const HASH_FALSO = bcrypt.hashSync("contraseña-inexistente", 10);
+// Por eso usa el MISMO costo que las contraseñas reales (COSTO_BCRYPT).
+const HASH_FALSO = bcrypt.hashSync("contraseña-inexistente", COSTO_BCRYPT);
 
 export type ResultadoLogin =
   | { ok: true; usuario: UsuarioCtx }

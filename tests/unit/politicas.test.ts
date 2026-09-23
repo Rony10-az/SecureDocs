@@ -24,9 +24,9 @@ const base = (): ContextoAutorizacion => ({
 });
 
 describe("datos del seed", () => {
-  test("están las 10 políticas P1..P10, sin repetirse", () => {
+  test("están las 11 políticas (P1..P10 de la guía + P11 del grupo), sin repetirse", () => {
     const codigos = POLITICAS.map((p) => p.codigo).sort();
-    expect(codigos).toEqual(["P1", "P10", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]);
+    expect(codigos).toEqual(["P1", "P10", "P11", "P2", "P3", "P4", "P5", "P6", "P7", "P8", "P9"]);
   });
 
   test("todas las condiciones están bien escritas", () => {
@@ -258,6 +258,40 @@ describe("P10 · autoaprobación (solo DOC_APPROVE)", () => {
   test("solo aplica a aprobar: la propietaria sí puede leer y modificar lo suyo", () => {
     expect(abac(ctx("supervisor.fin@techcorp.pe"), "DOC_READ")).toEqual(PERMITIDO);
     expect(abac(ctx("supervisor.fin@techcorp.pe"), "DOC_UPDATE")).toEqual(PERMITIDO);
+  });
+});
+
+describe("P11 · autogestión de roles (solo ROLE_ASSIGN)", () => {
+  const AUTO = denegado("P11", "No puede cambiar su propio rol");
+  const admin = usuario("admin@techcorp.pe");
+  // El "recurso" es el usuario cuyo rol se quiere cambiar. Sin `id` = un usuario que aún no existe (alta).
+  const objetivo = (id?: number): RecursoCtx => ({
+    tipo: "usuario",
+    ...(id !== undefined && { id }),
+    rol: "EMPLEADO",
+    departamento: "FINANZAS",
+    nivel_seguridad: 3,
+    estado: "ACTIVO",
+    tipo_contrato: "INTERNO",
+    pais: "PERU",
+  });
+  const asigna = (id?: number, quien = admin, accion = "ROLE_ASSIGN") =>
+    abac({ usuario: quien, entorno: entorno(), recurso: objetivo(id) }, accion);
+
+  test("un administrador NO puede cambiarse su propio rol", () => expect(asigna(admin.id)).toEqual(AUTO));
+  test("sí puede cambiar el de otra persona", () => expect(asigna(4)).toEqual(PERMITIDO));
+  test("al CREAR un usuario todavía no hay id: la política no estorba las altas", () => expect(asigna(undefined)).toEqual(PERMITIDO));
+  test("nadie está exceptuado: vale para cualquier rol", () => {
+    const gerente = usuario("gerente.fin@techcorp.pe");
+    expect(asigna(gerente.id, gerente)).toEqual(AUTO);
+  });
+  test("solo aplica a ROLE_ASSIGN: un administrador sí puede editar sus propios datos (USER_MANAGE)", () => {
+    expect(asigna(admin.id, admin, "USER_MANAGE")).toEqual(PERMITIDO);
+  });
+  test("solo ADMIN tiene ROLE_ASSIGN y USER_MANAGE (RBAC)", () => {
+    for (const permiso of ["ROLE_ASSIGN", "USER_MANAGE"]) {
+      expect(Object.keys(MATRIZ_RBAC).filter((rol) => MATRIZ_RBAC[rol].includes(permiso))).toEqual(["ADMIN"]);
+    }
   });
 });
 
