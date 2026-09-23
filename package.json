@@ -12,7 +12,8 @@
     "db:seed": "prisma db seed",
     "db:reset": "prisma migrate reset",
     "db:studio": "prisma studio",
-    "test": "jest --runInBand"
+    "test": "jest --runInBand",
+    "test:http": "npx --yes newman run http/SecureDocs.postman_collection.json -e http/SecureDocs.local.postman_environment.json"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"

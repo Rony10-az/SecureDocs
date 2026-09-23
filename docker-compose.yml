@@ -9,7 +9,9 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_DB: ${POSTGRES_DB}
     ports:
-      - "127.0.0.1:5434:5432"   # solo para desarrollo
+      # Solo desarrollo. 5434 y no 5433: en Windows (Docker Desktop/WSL2) el 5433 cayó en un rango
+      # de puertos reservado por Hyper-V y el bind fallaba con "forbidden by its access permissions".
+      - "127.0.0.1:5434:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -20,6 +22,7 @@ services:
     networks: [interna]
 
   minio:
+    # Quay.io y no Docker Hub: MinIO retiró sus imágenes públicas de Docker Hub (pull access denied)
     image: quay.io/minio/minio:latest
     restart: unless-stopped
     command: server /data --console-address ":9001"

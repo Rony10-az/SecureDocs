@@ -1,0 +1,1361 @@
+{
+  "info": {
+    "_postman_id": "95855748-1422-47dd-8402-8ec11c7dda7b",
+    "name": "SecureDocs API",
+    "description": "# SecureDocs — TechCorp S.A.\n\nColección de pruebas HTTP. Se va ampliando bloque por bloque (ahora: Bloque 2 — login JWT y contexto).\n\n## Cómo usarla\n1. Importa la colección **y** el environment `SecureDocs - Local`, y selecciónalo arriba a la derecha.\n2. Levanta la API (`npm run dev`) y ejecuta un **login** (carpeta 1 o 3): guarda el token en `{{token}}`.\n3. Los demás requests usan ese token automáticamente (Authorization: Bearer).\n\n## Headers de entorno (simulados)\n| Header | Ejemplo | Política |\n|---|---|---|\n| `X-Ubicacion` | `PERU`, `CHILE` | P5 (país) |\n| `X-Dispositivo` | `CORPORATIVO`, `PERSONAL` | P6 |\n| `X-Hora` | `20:00` (solo fuera de producción) | P4 (horario) |\n\nContraseña de todos los usuarios de prueba: `Secure123!`.\n\nFunciona también en **Bruno**: *Import Collection → Postman Collection*.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "ubicacion",
+      "value": "PERU",
+      "type": "string"
+    },
+    {
+      "key": "dispositivo",
+      "value": "CORPORATIVO",
+      "type": "string"
+    },
+    {
+      "key": "hora",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "password",
+      "value": "Secure123!",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "0 · Sistema",
+      "item": [
+        {
+          "name": "Health",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"estado ok y bd ok\", () => { pm.expect(json.estado).to.eql(\"ok\"); pm.expect(json.bd).to.eql(\"ok\"); });"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/health",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "health"
+              ]
+            },
+            "description": "La API y la base de datos responden.",
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "1 · Auth: flujo básico",
+      "description": "Ejecútalos en orden: el login guarda el token y los demás lo usan.",
+      "item": [
+        {
+          "name": "Empleado · FINANZAS · nivel 3 (Eduardo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "empleado.fin@techcorp.pe\n\nCasos 1, 2, 4, 15. Es propietario de varios documentos de FINANZAS.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · con token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"trae usuario y entorno\", () => { pm.expect(json).to.have.property(\"usuario\"); pm.expect(json).to.have.property(\"entorno\"); });",
+                  "pm.test(\"el entorno refleja X-Ubicacion y X-Dispositivo\", () => {",
+                  "  pm.expect(json.entorno.ubicacion).to.eql(String(pm.environment.get(\"ubicacion\")).toUpperCase());",
+                  "  pm.expect(json.entorno.dispositivo).to.eql(String(pm.environment.get(\"dispositivo\")).toUpperCase());",
+                  "});",
+                  "pm.test(\"hora con formato HH:mm\", () => pm.expect(json.entorno.hora).to.match(/^\\d{2}:\\d{2}$/));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text",
+                "description": "País simulado desde el que se accede (PERU, CHILE...). Lo evalúa la política P5."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text",
+                "description": "CORPORATIVO o PERSONAL. Lo evalúa la política P6."
+              },
+              {
+                "key": "X-Hora",
+                "value": "{{hora}}",
+                "type": "text",
+                "disabled": true,
+                "description": "Hora simulada HH:mm (solo con NODE_ENV distinto de production). Actívalo y escribe la hora en la variable 'hora'. Lo evalúa la política P4."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Devuelve el usuario (leído de la BD) y el entorno tal como lo ve el servidor."
+          }
+        },
+        {
+          "name": "Me · simulando hora 20:00 (X-Hora)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"entorno.hora = 20:00\", () => pm.expect(json.entorno.hora).to.eql(\"20:00\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "{{ubicacion}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "{{dispositivo}}",
+                "type": "text"
+              },
+              {
+                "key": "X-Hora",
+                "value": "20:00",
+                "type": "text",
+                "description": "Solo con NODE_ENV distinto de production."
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Así se probará la política P4 (horario) en el Bloque 3 y en el caso 9."
+          }
+        },
+        {
+          "name": "Me · desde CHILE con dispositivo PERSONAL",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"ubicacion = CHILE\", () => pm.expect(json.entorno.ubicacion).to.eql(\"CHILE\"));",
+                  "pm.test(\"dispositivo = PERSONAL\", () => pm.expect(json.entorno.dispositivo).to.eql(\"PERSONAL\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Ubicacion",
+                "value": "Chile",
+                "type": "text",
+                "description": "Se normaliza a mayúsculas y sin tildes."
+              },
+              {
+                "key": "X-Dispositivo",
+                "value": "personal",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Así se probarán P5 (país) y P6 (dispositivo). El servidor normaliza los valores."
+          }
+        },
+        {
+          "name": "Me · sin headers de entorno",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"ubicacion = null\", () => pm.expect(json.entorno.ubicacion).to.eql(null));",
+                  "pm.test(\"dispositivo = DESCONOCIDO\", () => pm.expect(json.entorno.dispositivo).to.eql(\"DESCONOCIDO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Sin X-Ubicacion ni X-Dispositivo el servidor NO asume nada: ubicación null y dispositivo DESCONOCIDO (P5 y P6 denegarán)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 · Auth: casos de error",
+      "description": "Todos deben responder con la forma { error, mensaje }.",
+      "item": [
+        {
+          "name": "Login · contraseña incorrecta",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = CREDENCIALES_INVALIDAS\", () => pm.expect(cuerpo.error).to.eql(\"CREDENCIALES_INVALIDAS\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"incorrecta\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · correo inexistente (mismo mensaje)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = CREDENCIALES_INVALIDAS\", () => pm.expect(cuerpo.error).to.eql(\"CREDENCIALES_INVALIDAS\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "Devuelve exactamente el mismo error que la contraseña incorrecta: no revela qué correos existen.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"nadie@techcorp.pe\",\n  \"password\": \"Secure123!\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · falta la contraseña",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                  "pm.test(\"el detalle señala el campo 'password'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"password\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · correo con formato inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                  "pm.test(\"el detalle señala el campo 'correo'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"correo\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"esto-no-es-un-correo\",\n  \"password\": \"x\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · campos con objetos (intento de inyección)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));",
+                  "pm.test(\"el detalle señala el campo 'correo'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"correo\"));",
+                  "pm.test(\"el detalle señala el campo 'password'\", () => pm.expect(cuerpo.detalles.map(d => d.campo)).to.include(\"password\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "zod exige texto; un objeto se rechaza antes de tocar la base de datos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"correo\": { \"$ne\": null }, \"password\": { \"$ne\": null } }",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Login · JSON mal formado",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{ \"correo\": ",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · sin token",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = NO_AUTENTICADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_AUTENTICADO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Me · token inválido",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 401\", () => pm.response.to.have.status(401));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = TOKEN_INVALIDO\", () => pm.expect(cuerpo.error).to.eql(\"TOKEN_INVALIDO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "esto.no.es.un.jwt",
+                  "type": "string"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Me · X-Hora inválida (25:99)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 400\", () => pm.response.to.have.status(400));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = VALIDACION\", () => pm.expect(cuerpo.error).to.eql(\"VALIDACION\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-Hora",
+                "value": "25:99",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/me",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "me"
+              ]
+            },
+            "description": "Solo aplica con NODE_ENV distinto de production; en producción el header se ignora."
+          }
+        },
+        {
+          "name": "Ruta inexistente",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 404\", () => pm.response.to.have.status(404));",
+                  "const cuerpo = pm.response.json();",
+                  "pm.test(\"error = NO_ENCONTRADO\", () => pm.expect(cuerpo.error).to.eql(\"NO_ENCONTRADO\"));"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/esta-ruta-no-existe",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "esta-ruta-no-existe"
+              ]
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 · Login rápido por usuario",
+      "description": "Un login por cada usuario del seed (contraseña común en la variable {{password}}). Ejecuta el que quieras probar y el token queda en {{token}}.",
+      "item": [
+        {
+          "name": "Admin · GLOBAL · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = ADMIN\", () => pm.expect(json.usuario.rol).to.eql(\"ADMIN\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "admin@techcorp.pe\n\nTodos los permisos. Departamento GLOBAL: exceptuado de P1.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Gerente · FINANZAS · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = GERENTE\", () => pm.expect(json.usuario.rol).to.eql(\"GERENTE\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "gerente.fin@techcorp.pe\n\nCasos 6 (elimina en su área) y 17 (modifica documento de un empleado: excepción de P3).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"gerente.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Supervisor · FINANZAS · nivel 4",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = SUPERVISOR\", () => pm.expect(json.usuario.rol).to.eql(\"SUPERVISOR\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "supervisor.fin@techcorp.pe\n\nCasos 3 (aprueba documento ajeno de su área) y 13 (aprueba el suyo: P10).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"supervisor.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Empleado · FINANZAS · nivel 3 (Eduardo)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "empleado.fin@techcorp.pe\n\nCasos 1, 2, 4, 15. Es propietario de varios documentos de FINANZAS.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Empleado · FINANZAS · nivel 3 (Elena)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "empleado2.fin@techcorp.pe\n\nCompañero de área de Eduardo. Caso 16 (intenta modificar un documento ajeno: P3).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado2.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Practicante · FINANZAS · nivel 2",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "practicante.fin@techcorp.pe\n\nCaso 5 (nivel 2 consulta documento nivel 4: P2).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"practicante.fin@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Empleado · RRHH · nivel 3",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "empleado.rrhh@techcorp.pe\n\nOtro departamento: sirve para probar P1 (caso 2).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"empleado.rrhh@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Auditor · GLOBAL · nivel 5",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = AUDITOR\", () => pm.expect(json.usuario.rol).to.eql(\"AUDITOR\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "auditor@techcorp.pe\n\nCaso 7 (intenta modificar: RBAC). Puede leer auditoría.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"auditor@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Empleado INACTIVO",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = EMPLEADO\", () => pm.expect(json.usuario.rol).to.eql(\"EMPLEADO\"));",
+                  "pm.test(\"estado = INACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"INACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "inactivo@techcorp.pe\n\nCaso 8. El login FUNCIONA a propósito; la denegación por P7 ocurre en authorize (Bloque 3) y queda auditada.\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"inactivo@techcorp.pe\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Invitado externo (vigente hasta 2027-12-31)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = INVITADO\", () => pm.expect(json.usuario.rol).to.eql(\"INVITADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "invitado@externo.com\n\nCasos 11 y 12 (P8: solo documentos nivel 1 publicados).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"invitado@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        },
+        {
+          "name": "Invitado externo VENCIDO (2025-01-01)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test(\"HTTP 200\", () => pm.response.to.have.status(200));",
+                  "const json = pm.response.json();",
+                  "pm.test(\"devuelve un JWT (3 partes)\", () => pm.expect(json.token.split(\".\")).to.have.lengthOf(3));",
+                  "pm.test(\"rol = INVITADO\", () => pm.expect(json.usuario.rol).to.eql(\"INVITADO\"));",
+                  "pm.test(\"estado = ACTIVO\", () => pm.expect(json.usuario.estado).to.eql(\"ACTIVO\"));",
+                  "pm.test(\"no expone el hash de la contraseña\", () => pm.expect(JSON.stringify(json)).to.not.include(\"password_hash\"));",
+                  "pm.environment.set(\"token\", json.token);"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json",
+                "type": "text"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/auth/login",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "auth",
+                "login"
+              ]
+            },
+            "description": "invitado.vencido@externo.com\n\nCaso 14. El login funciona; la denegación por P9 ocurre en authorize (Bloque 3).\n\nGuarda el token en la variable {{token}}: los demás requests lo usan solos.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"invitado.vencido@externo.com\",\n  \"password\": \"{{password}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

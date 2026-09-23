@@ -1,7 +1,10 @@
 import express from "express";
 import helmet from "helmet";
 import path from "node:path";
+import { authRouter } from "./auth/auth.routes";
+import { contextoEntorno } from "./context/entorno";
 import { prisma } from "./db";
+import { manejadorErrores, rutaNoEncontrada } from "./errors";
 
 export const app = express();
 
@@ -13,3 +16,11 @@ app.get("/health", async (_req, res) => {
   await prisma.$queryRaw`SELECT 1`;
   res.json({ estado: "ok", bd: "ok" });
 });
+
+// Desde aquí toda petición lleva el contexto de entorno (hora, ubicación, dispositivo, IP)
+app.use(contextoEntorno);
+app.use("/auth", authRouter);
+
+// Siempre al final: ruta inexistente -> 404 JSON; cualquier error -> respuesta uniforme
+app.use(rutaNoEncontrada);
+app.use(manejadorErrores);
