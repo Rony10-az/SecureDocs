@@ -1,5 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from "express";
 import { ZodError } from "zod";
+import { TAMANO_MAXIMO_TEXTO } from "./storage/limites";
 
 /** Error "esperado" de la aplicación: lleva su código HTTP y un código estable para el cliente. */
 export class AppError extends Error {
@@ -36,6 +37,19 @@ export class AppError extends Error {
   static accesoDenegado(d: { etapa: string; politica: string | null; motivo: string }) {
     return new AppError(403, "ACCESO_DENEGADO", d.motivo, { etapa: d.etapa, politica: d.politica, motivo: d.motivo });
   }
+  /** 409: la petición es válida pero choca con el estado actual (p. ej. aprobar algo que no está pendiente). */
+  static conflicto(mensaje: string) {
+    return new AppError(409, "CONFLICTO", mensaje);
+  }
+  static tipoNoPermitido(mensaje: string) {
+    return new AppError(415, "TIPO_NO_PERMITIDO", mensaje);
+  }
+  static archivoMuyGrande() {
+    return new AppError(413, "ARCHIVO_MUY_GRANDE", `El archivo supera el máximo de ${TAMANO_MAXIMO_TEXTO}`);
+  }
+  static almacenamientoNoDisponible() {
+    return new AppError(503, "ALMACENAMIENTO_NO_DISPONIBLE", "El almacenamiento de archivos no está disponible, intente más tarde");
+  }
 }
 
 /** Ruta que no existe: se registra al final de app.ts. */
@@ -71,6 +85,19 @@ export const manejadorErrores: ErrorRequestHandler = (err, _req, res, next) => {
   }
   if (err?.type === "entity.too.large") {
     res.status(413).json({ error: "CUERPO_MUY_GRANDE", mensaje: "El cuerpo de la petición es demasiado grande" });
+    return;
+  }
+
+  // Errores de multer (subida de archivos). Se reconoce por nombre para no cargar multer aquí.
+  if (err?.name === "MulterError") {
+    if (err.code === "LIMIT_FILE_SIZE") {
+      const e = AppError.archivoMuyGrande();
+      res.status(e.status).json({ error: e.codigo, mensaje: e.message });
+    } else if (err.code === "LIMIT_UNEXPECTED_FILE") {
+      res.status(400).json({ error: "VALIDACION", mensaje: "Envíe un solo archivo, en el campo 'archivo'" });
+    } else {
+      res.status(400).json({ error: "VALIDACION", mensaje: `No se pudo leer el formulario (${String(err.code)})` });
+    }
     return;
   }
 

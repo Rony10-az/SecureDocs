@@ -7,14 +7,14 @@ import type { Dispositivo, EntornoCtx } from "./tipos";
 const HORA_VALIDA = /^([01]\d|2[0-3]):[0-5]\d$/;
 
 /** "Perú " -> "PERU": sin tildes, en mayúsculas y recortado. Devuelve null si viene vacío o es absurdamente largo. */
-function normalizar(valor: string | undefined): string | null {
+export function normalizarTexto(valor: string | undefined): string | null {
   if (!valor) return null;
-  const limpio = valor.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().toUpperCase();
+  const limpio = valor.normalize("NFD").replace(/\p{M}/gu, "").trim().toUpperCase(); // \p{M} = marcas combinantes (las tildes)
   return limpio.length > 0 && limpio.length <= 40 ? limpio : null;
 }
 
 function dispositivoDe(valor: string | undefined): Dispositivo {
-  const v = normalizar(valor);
+  const v = normalizarTexto(valor);
   return v === "CORPORATIVO" || v === "PERSONAL" ? v : "DESCONOCIDO";
 }
 
@@ -39,7 +39,7 @@ export const contextoEntorno: RequestHandler = (req, _res, next) => {
   req.entorno = {
     hora,
     fecha: clock.fecha(),
-    ubicacion: normalizar(req.header("x-ubicacion")),
+    ubicacion: normalizarTexto(req.header("x-ubicacion")),
     dispositivo: dispositivoDe(req.header("x-dispositivo")),
     direccion_ip: req.ip ?? null,
   } satisfies EntornoCtx;
