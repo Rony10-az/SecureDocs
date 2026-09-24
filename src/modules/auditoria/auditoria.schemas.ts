@@ -6,6 +6,8 @@ export const filtrosAuditoriaSchema = z.object({
   accion: z.string().trim().max(50).optional(),
   resultado: z.enum(["PERMITIDO", "DENEGADO"]).optional(),
   etapa: z.enum(["AUTENTICACION", "ESTADO", "RBAC", "ABAC", "COMPLETA"]).optional(),
+  /** Coincidencia exacta con el recurso auditado, p. ej. "documento:12" (historial de un documento) */
+  recurso: z.string().trim().max(60).optional(),
   desde: z.coerce.date().optional(),
   hasta: z.coerce.date().optional(),
   pagina: z.coerce.number().int().min(1).default(1),

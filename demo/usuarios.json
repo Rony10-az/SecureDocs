@@ -2,16 +2,62 @@
   "aviso": "Solo laboratorio: son los usuarios que crea el seed (npm run db:seed). En producción esta carpeta no se sirve.",
   "password": "Secure123!",
   "usuarios": [
-    { "correo": "admin@techcorp.pe", "etiqueta": "Ana Admin · ADMIN · GLOBAL · nivel 5", "nota": "Tiene todos los permisos (es la única con USER_MANAGE y ROLE_ASSIGN). Aun así P4, P5 y P6 la alcanzan." },
-    { "correo": "gerente.fin@techcorp.pe", "etiqueta": "Gabriel Gerente · GERENTE · FINANZAS · nivel 5", "nota": "Aprueba y elimina en FINANZAS, modifica documentos ajenos (P3 lo exceptúa) y consulta la auditoría de su departamento." },
-    { "correo": "supervisor.fin@techcorp.pe", "etiqueta": "Sara Supervisora · SUPERVISOR · FINANZAS · nivel 4", "nota": "Aprueba documentos de FINANZAS, salvo los suyos (P10). No elimina ni ve la auditoría (RBAC)." },
-    { "correo": "empleado.fin@techcorp.pe", "etiqueta": "Eduardo Empleado · EMPLEADO · FINANZAS · nivel 3", "nota": "Crea, lee, descarga y modifica lo suyo (P3). No aprueba ni elimina (RBAC)." },
-    { "correo": "empleado2.fin@techcorp.pe", "etiqueta": "Elena Empleada · EMPLEADO · FINANZAS · nivel 3", "nota": "Compañera de Eduardo: si edita un documento de él, P3 la deniega." },
-    { "correo": "practicante.fin@techcorp.pe", "etiqueta": "Pedro Practicante · EMPLEADO · FINANZAS · nivel 2", "nota": "Nivel de seguridad 2: no accede a documentos de nivel mayor (P2)." },
-    { "correo": "empleado.rrhh@techcorp.pe", "etiqueta": "Rita RRHH · EMPLEADO · RRHH · nivel 3", "nota": "Otro departamento: no accede a documentos de FINANZAS (P1)." },
-    { "correo": "auditor@techcorp.pe", "etiqueta": "Alberto Auditor · AUDITOR · GLOBAL · nivel 5", "nota": "Lee y descarga en todos los departamentos y consulta toda la auditoría. No crea ni modifica (RBAC)." },
-    { "correo": "inactivo@techcorp.pe", "etiqueta": "Iván Inactivo · EMPLEADO · FINANZAS (INACTIVO)", "nota": "Cuenta inactiva: el login funciona, pero todo se deniega en la etapa ESTADO (P7)." },
-    { "correo": "invitado@externo.com", "etiqueta": "Irene Invitada · INVITADO · externa vigente", "nota": "Acceso hasta 2027-12-31. Solo lee documentos públicos (nivel 1) y publicados (P8)." },
-    { "correo": "invitado.vencido@externo.com", "etiqueta": "Víctor Vencido · INVITADO · externo vencido", "nota": "Su acceso venció el 2025-01-01: todo se deniega en la etapa ESTADO (P9)." }
+    {
+      "correo": "admin@techcorp.pe",
+      "etiqueta": "Ana Admin · ADMIN · GLOBAL · nivel 5",
+      "nota": "Tiene todos los permisos (es la única con USER_MANAGE y ROLE_ASSIGN). Aun así P4, P5 y P6 la alcanzan."
+    },
+    {
+      "correo": "gerente.fin@techcorp.pe",
+      "etiqueta": "Gabriel Gerente · GERENTE · FINANZAS · nivel 5",
+      "nota": "Aprueba y elimina en FINANZAS, modifica documentos ajenos (P3 lo exceptúa) y consulta la auditoría de su departamento."
+    },
+    {
+      "correo": "supervisor.fin@techcorp.pe",
+      "etiqueta": "Sara Supervisora · SUPERVISOR · FINANZAS · nivel 4",
+      "nota": "Aprueba documentos de FINANZAS, salvo los suyos (P10). No elimina ni ve la auditoría (RBAC)."
+    },
+    {
+      "correo": "empleado.fin@techcorp.pe",
+      "etiqueta": "Eduardo Empleado · EMPLEADO · FINANZAS · nivel 3",
+      "nota": "Crea, lee, descarga y modifica lo suyo (P3). No aprueba ni elimina (RBAC)."
+    },
+    {
+      "correo": "empleado2.fin@techcorp.pe",
+      "etiqueta": "Elena Empleada · EMPLEADO · FINANZAS · nivel 3",
+      "nota": "Compañera de Eduardo: si edita un documento de él, P3 la deniega."
+    },
+    {
+      "correo": "practicante.fin@techcorp.pe",
+      "etiqueta": "Pedro Practicante · EMPLEADO · FINANZAS · nivel 2",
+      "nota": "Nivel de seguridad 2: no accede a documentos de nivel mayor (P2)."
+    },
+    {
+      "correo": "empleado.rrhh@techcorp.pe",
+      "etiqueta": "Rita RRHH · EMPLEADO · RRHH · nivel 3",
+      "nota": "Otro departamento: no accede a documentos de FINANZAS (P1)."
+    },
+    {
+      "correo": "auditor@techcorp.pe",
+      "etiqueta": "Alberto Auditor · AUDITOR · GLOBAL · nivel 5",
+      "nota": "Lee y descarga en todos los departamentos y consulta toda la auditoría. No crea ni modifica (RBAC)."
+    },
+    {
+      "correo": "inactivo@techcorp.pe",
+      "etiqueta": "Iván Inactivo · EMPLEADO · FINANZAS (INACTIVO)",
+      "nota": "Cuenta inactiva: el login funciona, pero todo se deniega en la etapa ESTADO (P7).",
+      "especial": true
+    },
+    {
+      "correo": "invitado@externo.com",
+      "etiqueta": "Irene Invitada · INVITADO · externa vigente",
+      "nota": "Acceso hasta 2027-12-31. Solo lee documentos públicos (nivel 1) y publicados (P8)."
+    },
+    {
+      "correo": "invitado.vencido@externo.com",
+      "etiqueta": "Víctor Vencido · INVITADO · externo vencido",
+      "nota": "Su acceso venció el 2025-01-01: todo se deniega en la etapa ESTADO (P9).",
+      "especial": true
+    }
   ]
 }

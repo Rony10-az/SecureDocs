@@ -6,7 +6,7 @@ import { listarAuditoria } from "./auditoria.service";
 
 export const auditoriaRouter = Router();
 
-// GET /auditoria?usuario=&accion=&resultado=&etapa=&desde=&hasta=&pagina=&limite=
+// GET /auditoria?usuario=&accion=&resultado=&etapa=&recurso=&desde=&hasta=&pagina=&limite=
 // Consultar la auditoría también queda auditado (acción AUDIT_READ).
 auditoriaRouter.get("/", ...authorize("AUDIT_READ"), async (req, res) => {
   const filtros = filtrosAuditoriaSchema.parse(req.query);

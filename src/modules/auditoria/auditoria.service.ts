@@ -17,6 +17,7 @@ export async function listarAuditoria(solicitante: UsuarioCtx, f: FiltrosAuditor
   if (f.accion) where.accion = f.accion.toUpperCase();
   if (f.resultado) where.resultado = f.resultado;
   if (f.etapa) where.etapa = f.etapa;
+  if (f.recurso) where.recurso = f.recurso;
   if (f.desde || f.hasta) where.fecha = { ...(f.desde && { gte: f.desde }), ...(f.hasta && { lte: f.hasta }) };
   if (solicitante.departamento !== DEPARTAMENTO_GLOBAL) {
     where.usuario = { is: { departamento: { codigo: solicitante.departamento } } };

@@ -15,6 +15,9 @@ const base = {
 };
 
 module.exports = {
+  // Con `projects`, Jest solo imprime una línea por prueba si el reporter se pide de forma explícita. Va aquí y no como
+  // opción de la línea de comandos porque `--reporters` es una lista y se tragaría el filtro: npm run test:unit -- archivo
+  reporters: ["default"],
   // Cobertura (npm run test:cobertura): todo `src/` salvo el arranque del servidor, que solo abre el puerto
   collectCoverageFrom: ["src/**/*.ts", "!src/server.ts"],
   coverageDirectory: "coverage",
