@@ -8,7 +8,7 @@
 | Correo | rony.quintana@tecsup.edu.pe |
 | Institución | TECSUP |
 | Curso | Desarrollo de soluciones en la nube (5.º ciclo) |
-| Repositorio | [PEGAR: URL del repositorio Git] |
+| Repositorio | https://github.com/Rony10-az/SecureDocs |
 | Video de demostración | [PEGAR: URL del video] |
 
 **Resumen.** SecureDocs es una API de gestión documental para TechCorp S.A. que combina autenticación con JWT, control de acceso por roles (RBAC), control de acceso por atributos (ABAC) con políticas guardadas como datos en la base de datos, y una auditoría inmutable de cada decisión. Los archivos se guardan en MinIO y hay un frontend completo (HTML, Bootstrap y módulos ES propios) servido por la misma API.
@@ -29,7 +29,7 @@
 
 | Dato | Valor |
 |---|---|
-| Repositorio | [PEGAR: URL del repositorio Git] |
+| Repositorio | https://github.com/Rony10-az/SecureDocs |
 | Lenguaje | TypeScript sobre Node.js 22 |
 | Forma de trabajo | Individual, por bloques (infraestructura, login, autorización, documentos, usuarios, pruebas, frontend y entregables), con un commit por bloque |
 
@@ -82,7 +82,7 @@ SecureDocs/
 
 Un commit por bloque, con mensaje en español.
 
-[PEGAR: salida del comando git log --oneline]
+![Commits](image.png)
 
 # 2. README con instrucciones de instalación
 
@@ -652,10 +652,10 @@ Además de los casos de la guía se prueban: la inmutabilidad de la auditoría, 
 
 ## Capturas para adjuntar
 
-1. [PEGAR: captura de la salida de npm run test:casos con los 17 casos en verde]
-2. [PEGAR: captura del resumen final de npm test (18 suites, 689 pruebas)]
-3. [PEGAR: captura de la pantalla de login con el selector de usuarios de demostración]
-4. [PEGAR: captura de la lista de documentos con un aviso de acceso denegado (etapa, política y motivo)]
+1. ![Test de casos](image-1.png)
+2. ![Test](image-2.png)
+3. ![Login](image-3.png)
+4. ![Documentos](image-4.png)
 
 # 8. Registro de auditoría
 
@@ -709,9 +709,10 @@ docker compose exec postgres psql -U securedocs -d securedocs -c "UPDATE auditor
 
 Resultado esperado: `ERROR:  La tabla auditoria es inmutable: UPDATE no permitido`. Lo mismo ocurre con `DELETE` y `TRUNCATE`. Estas tres operaciones se prueban en `tests/integracion/auditoria.test.ts` dentro de una transacción que siempre se revierte.
 
-[PEGAR: captura de la pestaña Auditoría filtrada por resultado DENEGADO]
+![Auditoria](image-6.png)
+![Filtro-Denegado](image-7.png)
 
-[PEGAR: captura del error del trigger al intentar el UPDATE]
+![Auditoria](image-5.png)
 
 # 9. Video de demostración
 
