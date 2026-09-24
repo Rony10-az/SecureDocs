@@ -2,10 +2,130 @@
 <html lang="es">
   <head>
     <meta charset="utf-8" />
-    <title>SecureDocs</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>SecureDocs · TechCorp</title>
+    <link rel="icon" href="data:," />
+    <link rel="stylesheet" href="/vendor/bootstrap/bootstrap.min.css" />
+    <link rel="stylesheet" href="/estilos.css" />
   </head>
-  <body>
-    <h1>SecureDocs</h1>
-    <p>Frontend pendiente (Bloque 7): login, lista de documentos, subir, aprobar y auditoría.</p>
+  <body class="bg-body-tertiary">
+    <header class="bg-dark text-white">
+      <div class="container-xl d-flex flex-wrap align-items-center gap-3 py-2">
+        <strong class="fs-5">🔐 SecureDocs</strong>
+        <span class="text-secondary small">TechCorp S.A.</span>
+        <nav id="menu" class="nav nav-pills small" hidden>
+          <a class="nav-link text-white" data-vista="documentos" href="#/documentos">Documentos</a>
+          <a class="nav-link text-white" data-vista="auditoria" href="#/auditoria">Auditoría</a>
+        </nav>
+        <div id="sesion" class="ms-auto small" hidden>
+          <span id="quien" class="me-2"></span>
+          <button id="salir" type="button" class="btn btn-sm btn-outline-light">Salir</button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Ubicación, dispositivo y hora son SIMULADOS: viajan como cabeceras X-Ubicacion, X-Dispositivo y X-Hora -->
+    <section id="entorno" class="bg-body border-bottom" hidden>
+      <div class="container-xl py-2 small">
+        <form id="form-entorno" class="row g-2 align-items-end">
+          <div class="col-auto fw-semibold align-self-center">Entorno simulado</div>
+          <div class="col-auto">
+            <label class="form-label mb-0" for="e-ubicacion">Ubicación</label>
+            <select id="e-ubicacion" class="form-select form-select-sm">
+              <option value="PERU">PERU</option>
+              <option value="CHILE">CHILE</option>
+              <option value="ESTADOS UNIDOS">ESTADOS UNIDOS</option>
+              <option value="">(sin informar)</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label mb-0" for="e-dispositivo">Dispositivo</label>
+            <select id="e-dispositivo" class="form-select form-select-sm">
+              <option value="CORPORATIVO">CORPORATIVO</option>
+              <option value="PERSONAL">PERSONAL</option>
+              <option value="">(sin informar)</option>
+            </select>
+          </div>
+          <div class="col-auto">
+            <label class="form-label mb-0" for="e-hora">Hora (vacío = la real)</label>
+            <input id="e-hora" type="time" class="form-control form-control-sm" />
+          </div>
+        </form>
+        <div id="permisos" class="mt-2 text-secondary"></div>
+      </div>
+    </section>
+
+    <main class="container-xl py-3">
+      <div id="aviso" role="status" aria-live="polite"></div>
+      <div id="vista"></div>
+      <noscript>SecureDocs necesita JavaScript para funcionar.</noscript>
+    </main>
+
+    <dialog id="dlg-doc" aria-labelledby="dlg-doc-titulo">
+      <form id="form-doc" class="modal-content" autocomplete="off">
+        <div class="modal-header">
+          <h2 id="dlg-doc-titulo" class="modal-title fs-5">Subir documento</h2>
+          <button type="button" class="btn-close" data-cerrar aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div id="dlg-doc-aviso"></div>
+          <div class="mb-2">
+            <label class="form-label" for="f-titulo">Título</label>
+            <input id="f-titulo" name="titulo" class="form-control" required minlength="3" maxlength="200" />
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="f-descripcion">Descripción (opcional)</label>
+            <textarea id="f-descripcion" name="descripcion" class="form-control" rows="2" maxlength="2000"></textarea>
+          </div>
+          <div id="campos-clasificacion" class="row g-2 mb-2">
+            <div class="col-4">
+              <label class="form-label" for="f-nivel">Nivel</label>
+              <select id="f-nivel" name="nivel_confidencialidad" class="form-select">
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3" selected>3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+              </select>
+            </div>
+            <div class="col-4">
+              <label class="form-label" for="f-departamento">Departamento</label>
+              <input id="f-departamento" name="departamento" class="form-control" placeholder="el tuyo" maxlength="30" />
+            </div>
+            <div class="col-4">
+              <label class="form-label" for="f-pais">País</label>
+              <input id="f-pais" name="pais" class="form-control" placeholder="el tuyo" maxlength="40" />
+            </div>
+          </div>
+          <div class="mb-2">
+            <label class="form-label" for="f-archivo">Archivo (PDF, PNG, JPG, DOCX o XLSX; máx. 10 MB)</label>
+            <input id="f-archivo" name="archivo" type="file" class="form-control" accept=".pdf,.png,.jpg,.jpeg,.docx,.xlsx" />
+          </div>
+          <div class="form-check">
+            <input id="f-enviar" name="enviar" type="checkbox" class="form-check-input" />
+            <label class="form-check-label" for="f-enviar">Enviar a aprobación (queda PENDIENTE; exige archivo)</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-cerrar>Cancelar</button>
+          <button id="btn-guardar" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="dlg-detalle" aria-labelledby="dlg-detalle-titulo">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h2 id="dlg-detalle-titulo" class="modal-title fs-5">Detalle del documento</h2>
+          <button type="button" class="btn-close" data-cerrar aria-label="Cerrar"></button>
+        </div>
+        <div id="detalle-cuerpo" class="modal-body"></div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-cerrar>Cerrar</button>
+        </div>
+      </div>
+    </dialog>
+
+    <script type="module" src="/app.js"></script>
   </body>
 </html>
